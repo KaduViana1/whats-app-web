@@ -1,0 +1,114 @@
+$chat-color: hsl(216, 20%, 95%);
+
+.container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: hsl(45, 6%, 88%);
+}
+
+.background {
+  background-color: hsl(167, 100%, 33%);
+  height: 20%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+}
+
+.chatContainer {
+  width: 95%;
+  max-width: 1800px;
+  height: 95%;
+  background-color: hsl(0, 0%, 100%);
+  position: absolute;
+  display: flex;
+}
+
+.chatContacts {
+  width: 30%;
+  height: 100%;
+  border-right: 1px solid hsl(0, 0%, 90%);
+}
+
+.chatItem {
+  padding: 10px;
+  border-color: 1px solid $chat-color;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.chatTitleContainer {
+  display: flex;
+  flex-direction: column;
+  margin-left: 15px;
+}
+
+.itemImage {
+  width: 60px;
+  height: auto;
+  border-radius: 50%;
+}
+
+.titleMessage {
+  font-size: 1.1rem;
+}
+
+.lastMessage {
+  color: hsl(0, 0%, 50%);
+}
+
+.chatOptions {
+  width: 100%;
+  height: 80px;
+  background-color: $chat-color;
+}
+
+.chatMessages {
+  flex: 1;
+  background-image: url('../../assets/zap_84c42ab28307481aba5529aae57274d8.png');
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.chatMessagesArea {
+  flex: 1;
+}
+
+.inputArea {
+  width: 100%;
+  height: 70px;
+  background-color: $chat-color;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+
+  form {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+  }
+}
+
+.chatInput {
+  width: 90%;
+  background-color: hsl(0, 0%, 100%);
+  height: 45px;
+  border: none;
+  outline: transparent;
+  border-radius: 8px;
+  padding: 4px;
+  font-size: 1rem;
+}
+
+.sendMessageIcon {
+  width: 40px;
+  height: auto;
+  cursor: pointer;
+}
