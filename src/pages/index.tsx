@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from '../styles/Home.module.scss';
 import Image, { StaticImageData } from 'next/image';
 import ItemImage from '../../assets/profissao-programador_f801491a16284b568c89f23520ea8679.jpg';
@@ -17,12 +17,14 @@ type Messages = {
   name: string;
   message: string;
   userId: string;
+  currentRoom: string;
 };
 
 type Conversations = {
   title: string;
   image: StaticImageData;
   room: string;
+  messages: any;
 };
 
 export default function Home() {
@@ -30,29 +32,89 @@ export default function Home() {
   const [joined, setJoined] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [message, setMessage] = useState('');
+  const [newMessage, setNewMessage] = useState<Messages>();
   const [messages, setMessages] = useState<Messages[]>([]);
+  const [displayedMessages, setDisplayedMessages] = useState<Messages[]>([]);
   const [userId, setUserId] = useState(io.id);
+  const [bool, setBool] = useState(false);
   const [currentRoom, setCurrentRoom] = useState('Profissão-Programador');
   const [conversations, setConversations] = useState<Conversations[]>([
     {
       title: 'Profissão Programador',
       image: ItemImage,
       room: 'Profissão-Programador',
+      messages: [],
     },
   ]);
   const [displayedConversation, setDisplayedConversation] = useState(
     conversations.filter(c => c.room === currentRoom)
   );
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    io.on('users', users => setUsers(users));
-    io.on('message', message =>
-      setMessages(messages => [...messages, message])
-    );
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+
+    io.on('users', users => {
+      setUsers(users);
+    });
+    io.on('message', message => {
+      setNewMessage(message);
+    });
   }, []);
 
   useEffect(() => {
+    if (newMessage) {
+      if (
+        conversations.filter(c => c.room === newMessage.userId).length === 0 &&
+        newMessage.userId != userId &&
+        newMessage.currentRoom != 'Profissão-Programador' &&
+        newMessage.currentRoom === userId
+      ) {
+        setConversations(prev => [
+          ...prev,
+          {
+            title: newMessage.name,
+            image: DefaultUserImage,
+            room: newMessage.userId,
+            messages: [],
+          },
+        ]);
+      }
+      if (
+        newMessage.currentRoom === currentRoom ||
+        (newMessage.currentRoom === userId &&
+          currentRoom !== 'Profissão-Programador')
+      ) {
+        setDisplayedMessages(prev => [...prev, newMessage]);
+      }
+      setBool(true);
+    }
+  }, [newMessage]);
+
+  useEffect(() => {
+    if (messages) {
+      if (
+        newMessage?.currentRoom === currentRoom ||
+        newMessage?.userId === currentRoom
+      ) {
+        setDisplayedMessages(prev => [...prev, newMessage]);
+      }
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (newMessage && bool === true) {
+      updateConversationsMessages(newMessage);
+      setBool(false);
+    }
+  }, [bool]);
+
+  useEffect(() => {
     joinRoom();
+    const displayRoom = conversations.findIndex(c => c.room === currentRoom);
+    setDisplayedMessages(conversations[displayRoom].messages);
   }, [currentRoom]);
 
   const handleJoin = () => {
@@ -65,6 +127,32 @@ export default function Home() {
     }
   };
 
+  const updateConversationsMessages = (newMessage: Messages) => {
+    setConversations(prev => {
+      const index = conversations.findIndex(
+        c => c.room === newMessage.currentRoom
+      );
+
+      if (prev[index]) {
+        return [
+          ...prev.slice(0, index),
+          { ...prev[index], messages: [...prev[index].messages, newMessage] },
+          ...prev.slice(index + 1),
+        ];
+      } else {
+        const index = conversations.findIndex(
+          c => c.room === newMessage.userId
+        );
+
+        return [
+          ...prev.slice(0, index),
+          { ...prev[index], messages: [...prev[index].messages, newMessage] },
+          ...prev.slice(index + 1),
+        ];
+      }
+    });
+  };
+
   const joinRoom = () => {
     if (currentRoom) {
       io.emit('join-room', currentRoom);
@@ -73,8 +161,6 @@ export default function Home() {
       );
     }
   };
-
-  console.log(userId);
 
   const handleMessage = () => {
     if (message) {
@@ -85,13 +171,19 @@ export default function Home() {
 
   const handleOpenConversation = (user: User) => {
     if (conversations.filter(c => c.room === user.id).length > 0) {
+      setCurrentRoom(user.id);
       return;
     }
     if (user.id !== userId) {
       setCurrentRoom(user.id);
       setConversations(prev => [
         ...prev,
-        { title: user.name, image: DefaultUserImage, room: user.id },
+        {
+          title: user.name,
+          image: DefaultUserImage,
+          room: user.id,
+          messages: [],
+        },
       ]);
     }
   };
@@ -113,6 +205,7 @@ export default function Home() {
           >
             <label htmlFor="name">Digite seu nome</label>
             <input
+              ref={inputRef}
               type="text"
               id="name"
               value={name}
@@ -147,9 +240,9 @@ export default function Home() {
                   <div className={styles.chatTitleContainer}>
                     <span className={styles.titleMessage}>{c.title}</span>
                     <span className={styles.lastMessage}>
-                      {messages.length
-                        ? `${messages[messages.length - 1].name}: ${
-                            messages[messages.length - 1].message
+                      {c.messages.length
+                        ? `${c.messages[c.messages.length - 1].name}: ${
+                            c.messages[c.messages.length - 1].message
                           } `
                         : ''}
                     </span>
@@ -171,22 +264,23 @@ export default function Home() {
                     {displayedConversation[0].title}
                   </span>
                   <span className={styles.lastMessage}>
-                    {users.map((user, index) => (
-                      <span
-                        onClick={() => handleOpenConversation(user)}
-                        key={index}
-                      >
-                        {user.name}
-                        {index + 1 < users.length ? ', ' : ''}
-                      </span>
-                    ))}
+                    {currentRoom === 'Profissão-Programador' &&
+                      users.map((user, index) => (
+                        <span
+                          onClick={() => handleOpenConversation(user)}
+                          key={index}
+                        >
+                          {user.name}
+                          {index + 1 < users.length ? ', ' : ''}
+                        </span>
+                      ))}
                   </span>
                 </div>
               </div>
             </header>
 
             <div className={styles.chatMessagesArea}>
-              {messages.map((message, index) => (
+              {displayedMessages.map((message, index) => (
                 <div
                   key={index}
                   className={
@@ -215,6 +309,7 @@ export default function Home() {
                 }}
               >
                 <input
+                  autoFocus
                   placeholder="Message"
                   type="text"
                   className={styles.chatInput}
