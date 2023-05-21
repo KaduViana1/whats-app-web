@@ -98,6 +98,20 @@ $green-color: hsl(167, 100%, 33%);
   border-radius: 50%;
 }
 
+.unseenMessages {
+  margin-left: 10px;
+  background-color: $green-color;
+  color: white;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .titleMessage {
   font-size: 1.1rem;
 }
@@ -212,4 +226,13 @@ $green-color: hsl(167, 100%, 33%);
 
 .othersName {
   color: hsl(202, 92%, 66%);
+}
+
+.pinButton {
+  margin-left: auto;
+  background-color: transparent;
+  border-radius: 50%;
+  padding: 20;
+  border: none;
+  cursor: pointer;
 }

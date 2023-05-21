@@ -6,7 +6,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <title>Whats-app Web</title>
+        <title>WhatsApp</title>
       </Head>
       <Component {...pageProps} />
     </>

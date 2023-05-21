@@ -3,29 +3,37 @@ import styles from '../styles/Home.module.scss';
 import Image, { StaticImageData } from 'next/image';
 import ItemImage from '../../assets/profissao-programador_f801491a16284b568c89f23520ea8679.jpg';
 import DefaultUserImage from '../../assets/user.png';
+import PinEnabled from '../../assets/pin_enabled.png';
+import PinDisabled from '../../assets/pin_disabled.png';
 import SendMessageIcon from '../../assets/send_4febd72a71c34f3c9c99e5536d44887e.png';
 import socket from 'socket.io-client';
+import { ReactSortable } from 'react-sortablejs';
 
 const io = socket(process.env.BASE_URL || 'http://localhost:4000/');
 
-type User = {
+interface User {
   id: string;
   name: string;
-};
+}
 
-type Messages = {
+interface Messages {
   name: string;
   message: string;
   userId: string;
   currentRoom: string;
-};
+}
 
-type Conversations = {
+interface Conversations {
   title: string;
   image: StaticImageData;
   room: string;
-  messages: any;
-};
+  messages: Messages[];
+  unseenMessages: number;
+}
+
+interface FixedConversations extends Conversations {
+  lastIndex: number;
+}
 
 export default function Home() {
   const [name, setName] = useState('');
@@ -33,7 +41,6 @@ export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
   const [message, setMessage] = useState('');
   const [newMessage, setNewMessage] = useState<Messages>();
-  const [messages, setMessages] = useState<Messages[]>([]);
   const [displayedMessages, setDisplayedMessages] = useState<Messages[]>([]);
   const [userId, setUserId] = useState(io.id);
   const [bool, setBool] = useState(false);
@@ -44,8 +51,11 @@ export default function Home() {
       image: ItemImage,
       room: 'Profissão-Programador',
       messages: [],
+      unseenMessages: 0,
     },
   ]);
+  const [fixedConversations, setFixedConversations] =
+    useState<FixedConversations[]>();
   const [displayedConversation, setDisplayedConversation] = useState(
     conversations.filter(c => c.room === currentRoom)
   );
@@ -73,13 +83,14 @@ export default function Home() {
         newMessage.currentRoom === userId
       ) {
         setConversations(prev => [
-          ...prev,
           {
             title: newMessage.name,
             image: DefaultUserImage,
             room: newMessage.userId,
             messages: [],
+            unseenMessages: 0,
           },
+          ...prev,
         ]);
       }
       if (
@@ -87,22 +98,15 @@ export default function Home() {
         (newMessage.currentRoom === userId &&
           currentRoom !== 'Profissão-Programador')
       ) {
-        setDisplayedMessages(prev => [...prev, newMessage]);
+        newMessage.userId === userId ||
+        newMessage.currentRoom === userId ||
+        newMessage.currentRoom === 'Profissão-Programador'
+          ? setDisplayedMessages(prev => [...prev, newMessage])
+          : setDisplayedMessages(prev => [...prev]);
       }
       setBool(true);
     }
   }, [newMessage]);
-
-  useEffect(() => {
-    if (messages) {
-      if (
-        newMessage?.currentRoom === currentRoom ||
-        newMessage?.userId === currentRoom
-      ) {
-        setDisplayedMessages(prev => [...prev, newMessage]);
-      }
-    }
-  }, [messages]);
 
   useEffect(() => {
     if (newMessage && bool === true) {
@@ -115,6 +119,11 @@ export default function Home() {
     joinRoom();
     const displayRoom = conversations.findIndex(c => c.room === currentRoom);
     setDisplayedMessages(conversations[displayRoom].messages);
+    setConversations(prev => {
+      return prev.map(c => {
+        return c.room === currentRoom ? { ...c, unseenMessages: 0 } : c;
+      });
+    });
   }, [currentRoom]);
 
   const handleJoin = () => {
@@ -128,29 +137,61 @@ export default function Home() {
   };
 
   const updateConversationsMessages = (newMessage: Messages) => {
-    setConversations(prev => {
-      const index = conversations.findIndex(
-        c => c.room === newMessage.currentRoom
-      );
-
-      if (prev[index]) {
-        return [
-          ...prev.slice(0, index),
-          { ...prev[index], messages: [...prev[index].messages, newMessage] },
-          ...prev.slice(index + 1),
-        ];
-      } else {
+    if (
+      newMessage.currentRoom === userId ||
+      newMessage.userId === userId ||
+      newMessage.currentRoom === 'Profissão-Programador'
+    ) {
+      setConversations(prev => {
         const index = conversations.findIndex(
-          c => c.room === newMessage.userId
+          c => c.room === newMessage.currentRoom
         );
 
-        return [
-          ...prev.slice(0, index),
-          { ...prev[index], messages: [...prev[index].messages, newMessage] },
-          ...prev.slice(index + 1),
-        ];
-      }
-    });
+        if (prev[index]) {
+          return [
+            {
+              ...prev[index],
+              messages: [...prev[index].messages, newMessage],
+              unseenMessages:
+                newMessage.currentRoom === 'Profissão-Programador'
+                  ? newMessage.currentRoom !== currentRoom
+                    ? prev[index].unseenMessages + 1
+                    : 0
+                  : newMessage.userId !== userId &&
+                    newMessage.userId !== currentRoom &&
+                    newMessage.currentRoom !== currentRoom
+                  ? prev[index].unseenMessages + 1
+                  : 0,
+            },
+            ...prev.slice(0, index),
+            ...prev.slice(index + 1),
+          ];
+        } else {
+          const index = conversations.findIndex(
+            c => c.room === newMessage.userId
+          );
+
+          return [
+            {
+              ...prev[index],
+              messages: [...prev[index].messages, newMessage],
+              unseenMessages:
+                newMessage.currentRoom === 'Profissão-Programador'
+                  ? newMessage.currentRoom !== currentRoom
+                    ? prev[index].unseenMessages + 1
+                    : 0
+                  : newMessage.userId !== userId &&
+                    newMessage.userId !== currentRoom &&
+                    newMessage.currentRoom !== currentRoom
+                  ? prev[index].unseenMessages + 1
+                  : 0,
+            },
+            ...prev.slice(0, index),
+            ...prev.slice(index + 1),
+          ];
+        }
+      });
+    }
   };
 
   const joinRoom = () => {
@@ -183,6 +224,7 @@ export default function Home() {
           image: DefaultUserImage,
           room: user.id,
           messages: [],
+          unseenMessages: 0,
         },
       ]);
     }
@@ -190,6 +232,41 @@ export default function Home() {
 
   const changeConversation = (conversation: Conversations) => {
     setCurrentRoom(conversation.room);
+  };
+
+  const fixConversation = (index: number) => {
+    setFixedConversations(prev => {
+      if (prev) {
+        return [...prev, { ...conversations[index], lastIndex: index }];
+      } else {
+        return [{ ...conversations[index], lastIndex: index }];
+      }
+    });
+    setConversations(prev => [
+      ...prev.slice(0, index),
+      ...prev.slice(index + 1),
+    ]);
+  };
+
+  const unfixConversation = (index: number, lastIndex: number) => {
+    if (fixedConversations) {
+      setConversations(prev => [
+        ...prev.slice(0, lastIndex),
+        {
+          title: fixedConversations[index].title,
+          image: fixedConversations[index].image,
+          room: fixedConversations[index].room,
+          messages: fixedConversations[index].messages,
+          unseenMessages: fixedConversations[index].unseenMessages,
+        },
+        ...prev.slice(lastIndex),
+      ]);
+      setFixedConversations(prev => {
+        if (prev) {
+          return [...prev.slice(0, index), ...prev.slice(index + 1)];
+        }
+      });
+    }
   };
 
   if (!joined) {
@@ -225,8 +302,8 @@ export default function Home() {
         <div className={styles.chatContainer}>
           <aside className={styles.chatContacts}>
             <header className={styles.chatOptions}></header>
-            {conversations !== null &&
-              conversations.map(c => (
+            {fixedConversations &&
+              fixedConversations.map((c, index) => (
                 <div
                   onClick={() => changeConversation(c)}
                   key={c.room}
@@ -247,8 +324,70 @@ export default function Home() {
                         : ''}
                     </span>
                   </div>
+                  {c.unseenMessages > 0 && (
+                    <span className={styles.unseenMessages}>
+                      {c.unseenMessages}
+                    </span>
+                  )}
+                  <button
+                    className={styles.pinButton}
+                    onClick={e => {
+                      e.stopPropagation();
+                      unfixConversation(index, c.lastIndex);
+                    }}
+                  >
+                    <Image src={PinEnabled} width={25} height={25} alt="pin" />
+                  </button>
                 </div>
               ))}
+            <ReactSortable
+              list={conversations as any}
+              setList={setConversations as any}
+            >
+              {conversations &&
+                conversations.map((c, index) => (
+                  <div
+                    onClick={() => changeConversation(c)}
+                    key={c.room}
+                    className={styles.chatItem}
+                  >
+                    <Image
+                      className={styles.itemImage}
+                      src={c.image}
+                      alt="Group Image"
+                    />
+                    <div className={styles.chatTitleContainer}>
+                      <span className={styles.titleMessage}>{c.title}</span>
+                      <span className={styles.lastMessage}>
+                        {c.messages.length
+                          ? `${c.messages[c.messages.length - 1].name}: ${
+                              c.messages[c.messages.length - 1].message
+                            } `
+                          : ''}
+                      </span>
+                    </div>
+                    {c.unseenMessages > 0 && (
+                      <span className={styles.unseenMessages}>
+                        {c.unseenMessages}
+                      </span>
+                    )}
+                    <button
+                      className={styles.pinButton}
+                      onClick={e => {
+                        fixConversation(index);
+                        e.stopPropagation();
+                      }}
+                    >
+                      <Image
+                        src={PinDisabled}
+                        width={25}
+                        height={25}
+                        alt="pin"
+                      />
+                    </button>
+                  </div>
+                ))}
+            </ReactSortable>
           </aside>
 
           <div className={styles.chatMessages}>
