@@ -8,32 +8,30 @@ import PinDisabled from '../../assets/pin_disabled.png';
 import SendMessageIcon from '../../assets/send_4febd72a71c34f3c9c99e5536d44887e.png';
 import socket from 'socket.io-client';
 import { ReactSortable } from 'react-sortablejs';
+import SideBar from '@/components/SideBar';
 
 const io = socket(process.env.BASE_URL || 'http://localhost:4000/');
 
-interface User {
+type User = {
   id: string;
   name: string;
-}
+};
 
-interface Messages {
+type Messages = {
   name: string;
   message: string;
   userId: string;
   currentRoom: string;
-}
+};
 
-interface Conversations {
+export type Conversations = {
   title: string;
   image: StaticImageData;
   room: string;
   messages: Messages[];
   unseenMessages: number;
-}
-
-interface FixedConversations extends Conversations {
-  lastIndex: number;
-}
+  isFixed: boolean;
+};
 
 export default function Home() {
   const [name, setName] = useState('');
@@ -52,10 +50,10 @@ export default function Home() {
       room: 'Profissão-Programador',
       messages: [],
       unseenMessages: 0,
+      isFixed: false,
     },
   ]);
-  const [fixedConversations, setFixedConversations] =
-    useState<FixedConversations[]>();
+
   const [displayedConversation, setDisplayedConversation] = useState(
     conversations.filter(c => c.room === currentRoom)
   );
@@ -89,6 +87,7 @@ export default function Home() {
             room: newMessage.userId,
             messages: [],
             unseenMessages: 0,
+            isFixed: false,
           },
           ...prev,
         ]);
@@ -225,6 +224,7 @@ export default function Home() {
           room: user.id,
           messages: [],
           unseenMessages: 0,
+          isFixed: false,
         },
       ]);
     }
@@ -234,39 +234,12 @@ export default function Home() {
     setCurrentRoom(conversation.room);
   };
 
-  const fixConversation = (index: number) => {
-    setFixedConversations(prev => {
-      if (prev) {
-        return [...prev, { ...conversations[index], lastIndex: index }];
-      } else {
-        return [{ ...conversations[index], lastIndex: index }];
-      }
-    });
-    setConversations(prev => [
-      ...prev.slice(0, index),
-      ...prev.slice(index + 1),
-    ]);
-  };
-
-  const unfixConversation = (index: number, lastIndex: number) => {
-    if (fixedConversations) {
-      setConversations(prev => [
-        ...prev.slice(0, lastIndex),
-        {
-          title: fixedConversations[index].title,
-          image: fixedConversations[index].image,
-          room: fixedConversations[index].room,
-          messages: fixedConversations[index].messages,
-          unseenMessages: fixedConversations[index].unseenMessages,
-        },
-        ...prev.slice(lastIndex),
-      ]);
-      setFixedConversations(prev => {
-        if (prev) {
-          return [...prev.slice(0, index), ...prev.slice(index + 1)];
-        }
-      });
-    }
+  const fixUnfixConversation = (conversationRoom: string) => {
+    setConversations(prev =>
+      prev.map(c => {
+        return c.room === conversationRoom ? { ...c, isFixed: !c.isFixed } : c;
+      })
+    );
   };
 
   if (!joined) {
@@ -300,52 +273,17 @@ export default function Home() {
       <div className={styles.container}>
         <div className={styles.background}></div>
         <div className={styles.chatContainer}>
-          <aside className={styles.chatContacts}>
+          <SideBar
+            conversations={conversations}
+            setConversations={setConversations}
+            setCurrentRoom={setCurrentRoom}
+          />
+          {/* <aside className={styles.chatContacts}>
             <header className={styles.chatOptions}></header>
-            {fixedConversations &&
-              fixedConversations.map((c, index) => (
-                <div
-                  onClick={() => changeConversation(c)}
-                  key={c.room}
-                  className={styles.chatItem}
-                >
-                  <Image
-                    className={styles.itemImage}
-                    src={c.image}
-                    alt="Group Image"
-                  />
-                  <div className={styles.chatTitleContainer}>
-                    <span className={styles.titleMessage}>{c.title}</span>
-                    <span className={styles.lastMessage}>
-                      {c.messages.length
-                        ? `${c.messages[c.messages.length - 1].name}: ${
-                            c.messages[c.messages.length - 1].message
-                          } `
-                        : ''}
-                    </span>
-                  </div>
-                  {c.unseenMessages > 0 && (
-                    <span className={styles.unseenMessages}>
-                      {c.unseenMessages}
-                    </span>
-                  )}
-                  <button
-                    className={styles.pinButton}
-                    onClick={e => {
-                      e.stopPropagation();
-                      unfixConversation(index, c.lastIndex);
-                    }}
-                  >
-                    <Image src={PinEnabled} width={25} height={25} alt="pin" />
-                  </button>
-                </div>
-              ))}
-            <ReactSortable
-              list={conversations as any}
-              setList={setConversations as any}
-            >
-              {conversations &&
-                conversations.map((c, index) => (
+            {conversations &&
+              conversations
+                .filter(c => c.isFixed === true)
+                .map((c, index) => (
                   <div
                     onClick={() => changeConversation(c)}
                     key={c.room}
@@ -374,12 +312,12 @@ export default function Home() {
                     <button
                       className={styles.pinButton}
                       onClick={e => {
-                        fixConversation(index);
                         e.stopPropagation();
+                        fixUnfixConversation(c.room);
                       }}
                     >
                       <Image
-                        src={PinDisabled}
+                        src={PinEnabled}
                         width={25}
                         height={25}
                         alt="pin"
@@ -387,8 +325,57 @@ export default function Home() {
                     </button>
                   </div>
                 ))}
+            <ReactSortable
+              list={conversations as any}
+              setList={setConversations as any}
+            >
+              {conversations &&
+                conversations
+                  .filter(c => c.isFixed === false)
+                  .map((c, index) => (
+                    <div
+                      onClick={() => changeConversation(c)}
+                      key={c.room}
+                      className={styles.chatItem}
+                    >
+                      <Image
+                        className={styles.itemImage}
+                        src={c.image}
+                        alt="Group Image"
+                      />
+                      <div className={styles.chatTitleContainer}>
+                        <span className={styles.titleMessage}>{c.title}</span>
+                        <span className={styles.lastMessage}>
+                          {c.messages.length
+                            ? `${c.messages[c.messages.length - 1].name}: ${
+                                c.messages[c.messages.length - 1].message
+                              } `
+                            : ''}
+                        </span>
+                      </div>
+                      {c.unseenMessages > 0 && (
+                        <span className={styles.unseenMessages}>
+                          {c.unseenMessages}
+                        </span>
+                      )}
+                      <button
+                        className={styles.pinButton}
+                        onClick={e => {
+                          e.stopPropagation();
+                          fixUnfixConversation(c.room);
+                        }}
+                      >
+                        <Image
+                          src={PinDisabled}
+                          width={25}
+                          height={25}
+                          alt="pin"
+                        />
+                      </button>
+                    </div>
+                  ))}
             </ReactSortable>
-          </aside>
+          </aside> */}
 
           <div className={styles.chatMessages}>
             <header className={styles.chatOptions}>
