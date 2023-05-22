@@ -1,4 +1,4 @@
-import { SetStateAction, useEffect, useState } from 'react';
+import { SetStateAction } from 'react';
 import styles from '../styles/Home.module.scss';
 import Image from 'next/image';
 import PinEnabled from '../../assets/pin_enabled.png';
