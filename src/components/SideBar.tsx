@@ -1,5 +1,5 @@
 import { SetStateAction } from 'react';
-import styles from '../styles/Home.module.scss';
+import styles from '../styles/Sidebar.module.scss';
 import Image from 'next/image';
 import PinEnabled from '../../assets/pin_enabled.png';
 import PinDisabled from '../../assets/pin_disabled.png';

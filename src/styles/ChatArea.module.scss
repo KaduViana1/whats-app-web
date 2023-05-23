@@ -1,0 +1,92 @@
+@import './Variables';
+@import './Utils';
+
+.chatMessagesArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  overflow-y: auto;
+  padding-top: 10px;
+}
+
+%userContainerMessage {
+  width: 100%;
+  display: flex;
+  padding: 0 20px;
+  margin: 2px 0;
+}
+
+.messageContainerRight {
+  @extend %userContainerMessage;
+  justify-content: flex-end;
+}
+
+.messageContainerLeft {
+  @extend %userContainerMessage;
+  justify-content: flex-start;
+}
+
+%messages {
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.myMessages {
+  @extend %messages;
+  background-color: hsl(111, 91%, 91%);
+}
+
+.othersMessages {
+  @extend %messages;
+  background-color: hsl(0, 0%, 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.othersName {
+  color: hsl(202, 92%, 66%);
+}
+
+.inputArea {
+  width: 100%;
+  height: 70px;
+  background-color: $chat-color;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+
+  form {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+  }
+}
+
+.chatInput {
+  width: 90%;
+  background-color: hsl(0, 0%, 100%);
+  height: 45px;
+  border: none;
+  outline: transparent;
+  border-radius: 8px;
+  padding: 4px;
+  font-size: 1rem;
+}
+
+.sendMessageButton {
+  width: 40px;
+  height: auto;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  outline: transparent;
+}
+
+.sendMessageIcon {
+  width: 100%;
+  height: auto;
+}

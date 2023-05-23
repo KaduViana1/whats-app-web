@@ -1,5 +1,5 @@
 import React, { useState, SetStateAction, useEffect } from 'react';
-import styles from '../styles/Home.module.scss';
+import styles from '../styles/ChatArea.module.scss';
 import Image from 'next/image';
 import DefaultUserImage from '../../assets/user.png';
 import SendMessageIcon from '../../assets/send_4febd72a71c34f3c9c99e5536d44887e.png';
